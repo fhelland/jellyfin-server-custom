@@ -109,10 +109,11 @@ public class DynamicHlsPlaylistGenerator : IDynamicHlsPlaylistGenerator
     private bool TryExtractKeyframes(Guid itemId, string filePath, [NotNullWhen(true)] out KeyframeData? keyframeData)
     {
         keyframeData = null;
-        if (!IsExtractionAllowedForFile(filePath, _serverConfigurationManager.GetEncodingOptions().AllowOnDemandMetadataBasedKeyframeExtractionForExtensions))
+
+        /* if (!IsExtractionAllowedForFile(filePath, _serverConfigurationManager.GetEncodingOptions().AllowOnDemandMetadataBasedKeyframeExtractionForExtensions))
         {
             return false;
-        }
+        } */
 
         var len = _extractors.Length;
         for (var i = 0; i < len; i++)

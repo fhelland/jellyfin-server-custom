@@ -800,6 +800,8 @@ namespace MediaBrowser.Model.Entities
                         1 => (VideoRange.HDR, VideoRangeType.DOVIWithHDR10),
                         4 => (VideoRange.HDR, VideoRangeType.DOVIWithHLG),
                         2 => (VideoRange.SDR, VideoRangeType.DOVIWithSDR),
+                        // Wrongly tagged as 8.6, but in practice the client will play this without issues as 8.1.
+                        6 => (VideoRange.HDR, VideoRangeType.DOVIWithHDR10),
                         // Out of Dolby Spec files should be marked as invalid
                         _ => (VideoRange.HDR, VideoRangeType.DOVIInvalid)
                     },

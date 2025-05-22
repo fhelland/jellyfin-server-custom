@@ -1644,6 +1644,15 @@ public class DynamicHlsController : BaseJellyfinApiController
 
         var hlsArguments = $"-hls_playlist_type {(isEventPlaylist ? "event" : "vod")} -hls_list_size 0";
 
+        if (string.Equals(segmentContainer, "mp4", StringComparison.OrdinalIgnoreCase))
+        {
+            // This is needed for resume/seeking with fmp4 on native HLS players such as WebOS.
+            // The `frag_discont` option signals that the next fragment is discontinuous from earlier ones.
+            // It sets timestamp values in the BaseMediaDecodeTime box coresponding to the streams pts.
+            // For more details, refer to the FFmpeg documentation: https://ffmpeg.org/ffmpeg-formats.html#Options-6
+            hlsArguments += " -hls_segment_options movflags=+frag_discont";
+        }
+
         return string.Format(
             CultureInfo.InvariantCulture,
             "{0} {1} -map_metadata -1 -map_chapters -1 -threads {2} {3} {4} {5} -copyts -avoid_negative_ts disabled -max_muxing_queue_size {6} -f hls -max_delay 5000000 -hls_time {7} -hls_segment_type {8} -start_number {9}{10} -hls_segment_filename \"{11}\" {12} -y \"{13}\"",
@@ -1824,6 +1833,7 @@ public class DynamicHlsController : BaseJellyfinApiController
             // Only enable Dolby Vision remuxing if the client explicitly declares support for profiles without fallbacks.
             var clientSupportsDoVi = requestedRange.Contains(VideoRangeType.DOVI.ToString(), StringComparison.OrdinalIgnoreCase);
             var videoIsDoVi = EncodingHelper.IsDovi(state.VideoStream);
+            var isDoVIWithoutFallback = state.VideoStream.VideoRangeType is VideoRangeType.DOVI;
 
             if (EncodingHelper.IsCopyCodec(codec)
                 && (videoIsDoVi && clientSupportsDoVi)
@@ -1831,12 +1841,13 @@ public class DynamicHlsController : BaseJellyfinApiController
             {
                 if (isActualOutputVideoCodecHevc)
                 {
-                    // Prefer dvh1 to dvhe
-                    args += " -tag:v:0 dvh1 -strict -2";
+                    // Prefer dvh1 to dvhe for profile 5, othervise tag as hvc1.
+                    args += isDoVIWithoutFallback ? " -tag:v:0 dvh1 -strict -2" : " -tag:v:0 hvc1 -strict -2";
                 }
                 else if (isActualOutputVideoCodecAv1)
                 {
-                    args += " -tag:v:0 dav1 -strict -2";
+                    // Tag Profile 10.0 as dav1, otherwise use tag av01.
+                    args += isDoVIWithoutFallback ? " -tag:v:0 dav1 -strict -2" : " -tag:v:0 av01 -strict -2";
                 }
             }
             else if (isActualOutputVideoCodecHevc)
