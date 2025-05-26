@@ -837,7 +837,8 @@ namespace MediaBrowser.Model.Entities
             {
                 return Hdr10PlusPresentFlag == true ? (VideoRange.HDR, VideoRangeType.HDR10Plus) : (VideoRange.HDR, VideoRangeType.HDR10);
             }
-            else if (string.Equals(colorTransfer, "arib-std-b67", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(colorTransfer, "arib-std-b67", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(colorTransfer, "bt2020-10", StringComparison.OrdinalIgnoreCase))
             {
                 return (VideoRange.HDR, VideoRangeType.HLG);
             }
