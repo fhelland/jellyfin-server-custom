@@ -1622,6 +1622,9 @@ public class DynamicHlsController : BaseJellyfinApiController
             };
 
             segmentFormat = "fmp4" + outputFmp4HeaderArg;
+
+            // Improves seeking when using fmp4 on some native HLS clients such as web0s
+            segmentFormat += " -hls_segment_options movflags=+frag_discont";
         }
         else
         {
@@ -1643,15 +1646,6 @@ public class DynamicHlsController : BaseJellyfinApiController
         }
 
         var hlsArguments = $"-hls_playlist_type {(isEventPlaylist ? "event" : "vod")} -hls_list_size 0";
-
-        if (string.Equals(segmentContainer, "mp4", StringComparison.OrdinalIgnoreCase))
-        {
-            // This is needed for resume/seeking with fmp4 on native HLS players such as WebOS.
-            // The `frag_discont` option signals that the next fragment is discontinuous from earlier ones.
-            // It sets timestamp values in the BaseMediaDecodeTime box coresponding to the streams pts.
-            // For more details, refer to the FFmpeg documentation: https://ffmpeg.org/ffmpeg-formats.html#Options-6
-            hlsArguments += " -hls_segment_options movflags=+frag_discont";
-        }
 
         return string.Format(
             CultureInfo.InvariantCulture,
@@ -1846,7 +1840,6 @@ public class DynamicHlsController : BaseJellyfinApiController
                 }
                 else if (isActualOutputVideoCodecAv1)
                 {
-                    // Tag Profile 10.0 as dav1, otherwise use tag av01.
                     args += isDoVIWithoutFallback ? " -tag:v:0 dav1 -strict -2" : " -tag:v:0 av01 -strict -2";
                 }
             }
