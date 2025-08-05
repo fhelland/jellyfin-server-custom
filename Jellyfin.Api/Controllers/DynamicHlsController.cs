@@ -1629,9 +1629,6 @@ public class DynamicHlsController : BaseJellyfinApiController
             hlsArguments += $" {(useLegacySegmentOption ? "-hls_ts_options" : "-hls_segment_options")} movflags=+frag_discont";
 
             segmentFormat = "fmp4" + outputFmp4HeaderArg;
-
-            // Improves seeking when using fmp4 on some native HLS clients such as web0s
-            segmentFormat += " -hls_segment_options movflags=+frag_discont";
         }
         else
         {
@@ -1832,20 +1829,23 @@ public class DynamicHlsController : BaseJellyfinApiController
             // Only enable Dolby Vision remuxing if the client explicitly declares support for profiles without fallbacks.
             var clientSupportsDoVi = requestedRange.Contains(VideoRangeType.DOVI.ToString(), StringComparison.OrdinalIgnoreCase);
             var videoIsDoVi = EncodingHelper.IsDovi(state.VideoStream);
-            var isDoVIWithoutFallback = state.VideoStream.VideoRangeType is VideoRangeType.DOVI;
 
             if (EncodingHelper.IsCopyCodec(codec)
                 && (videoIsDoVi && clientSupportsDoVi)
                 && !_encodingHelper.IsDoviRemoved(state))
             {
+                var isDoViWithoutFallback = state.VideoStream.VideoRangeType is VideoRangeType.DOVI;
+                // The correct way to tag Dolby Vision streams in fMP4.
+                // This is necessary to signal Dolby Vision with clients that expect these tags.
                 if (isActualOutputVideoCodecHevc)
                 {
-                    // Prefer dvh1 to dvhe for profile 5, othervise tag as hvc1.
-                    args += isDoVIWithoutFallback ? " -tag:v:0 dvh1 -strict -2" : " -tag:v:0 hvc1 -strict -2";
+                    // Use the 'dvh1' fourCC tag for profile 5 and 'hvc1' for streams with a fallback layer (profile 8)
+                    args += $" -tag:v:0 {(isDoViWithoutFallback ? "dvh1" : "hvc1")} -strict -2";
                 }
                 else if (isActualOutputVideoCodecAv1)
                 {
-                    args += isDoVIWithoutFallback ? " -tag:v:0 dav1 -strict -2" : " -tag:v:0 av01 -strict -2";
+                    // For AV1, use 'dav1' for Profile 10 without fallback layer, and 'av01' for profile 10 streams with fallback.
+                    args += $" -tag:v:0 {(isDoViWithoutFallback ? "dav1" : "av01")} -strict -2";
                 }
             }
             else if (isActualOutputVideoCodecHevc)

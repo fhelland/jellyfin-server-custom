@@ -856,6 +856,7 @@ namespace MediaBrowser.MediaEncoding.Probing
 
                 // http://stackoverflow.com/questions/17353387/how-to-detect-anamorphic-video-with-ffprobe
                 stream.IsAnamorphic = string.Equals(streamInfo.SampleAspectRatio, "0:1", StringComparison.OrdinalIgnoreCase);
+                var frameInfo = frameInfoList?.FirstOrDefault(i => i.StreamIndex == stream.Index);
 
                 if (streamInfo.Refs > 0)
                 {
@@ -872,7 +873,12 @@ namespace MediaBrowser.MediaEncoding.Probing
                     stream.ColorSpace = streamInfo.ColorSpace;
                 }
 
-                if (!string.IsNullOrEmpty(streamInfo.ColorTransfer))
+                if (!string.IsNullOrEmpty(frameInfo?.ColorTransfer))
+                {
+                    // Check frameinfo first. ColorTransfer from frameinfo is typically more presise.
+                    stream.ColorTransfer = frameInfo.ColorTransfer;
+                }
+                else if (!string.IsNullOrEmpty(streamInfo.ColorTransfer))
                 {
                     stream.ColorTransfer = streamInfo.ColorTransfer;
                 }
@@ -907,7 +913,6 @@ namespace MediaBrowser.MediaEncoding.Probing
                     }
                 }
 
-                var frameInfo = frameInfoList?.FirstOrDefault(i => i.StreamIndex == stream.Index);
                 if (frameInfo?.SideDataList != null)
                 {
                     if (frameInfo.SideDataList.Any(data => string.Equals(data.SideDataType, "HDR Dynamic Metadata SMPTE2094-40 (HDR10+)", StringComparison.OrdinalIgnoreCase)))
